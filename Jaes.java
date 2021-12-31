@@ -11,7 +11,9 @@ import javax.crypto.Cipher;
 import javax.crypto.IllegalBlockSizeException;
 import javax.crypto.NoSuchPaddingException;
 import javax.crypto.spec.SecretKeySpec;
-import javax.crypto.*;
+import java.nio.charset.StandardCharsets;
+import java.security.MessageDigest;
+import java.math.BigInteger;
 
 public class Jaes {
 
@@ -33,22 +35,23 @@ public class Jaes {
         String secret = handleSecretKey();
 
         if (input.isDirectory()) {
-            System.out.println("input is directory");
+            System.out.println("Input file is a directory. Only files are supported");
+            System.exit(0);
         } else {
             boolean toEncrypt = encryptOrDe.equals("e");
             cryptFile(secret, input.getPath(), input.getPath(), toEncrypt);
-        }        
+        }
     }
 
     private static void printIncorrectUsage() {
         System.out.println("Incorrect CLI arguments\n");
-        System.out.println("arg 1: path of input file or directory");
+        System.out.println("arg 1: path of file to encrypt or decrypt");
         System.out.println("arg 2: (e)encrypt or (d)decrypt");
-        System.out.println("optional arg 3: delete input file(s) afterwards = y or n\n");
-        System.out.println("usage: \n$ java Jaes input.txt e y");
+        System.out.println("usage: \n$ java Jaes input.txt e");
+        System.exit(0);
     }
 
-    private static String handleSecretKey() {
+    private static String handleSecretKey() throws NoSuchAlgorithmException {
         Console console = System.console();
 
         if (console == null) {
@@ -60,16 +63,11 @@ public class Jaes {
         }
         String convertedKey = String.valueOf(keyFromConsole);
 
-        if (convertedKey.length() > 16) {
-            convertedKey = convertedKey.substring(0, 16);
-        } else {
-            int inputLength = convertedKey.length();
-            int diff = 16 - inputLength;
-            String appendToKey = "fR7mYfdr954r9941";
-            appendToKey = appendToKey.substring(0, diff);
-            convertedKey += appendToKey;
-        }
-        return convertedKey;
+        MessageDigest md = MessageDigest.getInstance("SHA-256");
+        md.update(convertedKey.getBytes(StandardCharsets.UTF_8));
+        byte[] digest = md.digest();
+        String hex = String.format("%064x", new BigInteger(1, digest));
+        return hex.substring(0, 32);
     }
 
     private static void cryptFile(String secretKey, String fileInputPath, String fileOutPath, boolean isEncryption)
