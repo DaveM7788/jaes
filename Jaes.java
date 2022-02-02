@@ -3,6 +3,8 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.Console;
+import java.io.BufferedInputStream;
+import java.io.InputStream;
 import java.security.InvalidKeyException;
 import java.security.NoSuchAlgorithmException;
 
@@ -20,11 +22,12 @@ public class Jaes {
     static File input;
     static String encryptOrDe;
     static char[] keyFromConsole;
+    static boolean quietMode;
 
     public static void main(String[] args) throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException,
-    IllegalBlockSizeException, BadPaddingException, IOException {
+                                                  IllegalBlockSizeException, BadPaddingException, IOException {
 
-        if (args.length == 2) {
+        if (args.length == 2 || args.length == 3) {
             input = new File(args[0]);
             encryptOrDe = args[1];
             if (!(encryptOrDe.equals("e") || encryptOrDe.equals("d"))) printIncorrectUsage();
@@ -32,6 +35,11 @@ public class Jaes {
             printIncorrectUsage();
         }
 
+        if (args.length == 3 && args[2].equals("-q")) {
+            quietMode = true;
+        } else {
+            quietMode = false;
+        }
         String secret = handleSecretKey();
 
         if (input.isDirectory()) {
@@ -47,6 +55,7 @@ public class Jaes {
         System.out.println("Incorrect CLI arguments\n");
         System.out.println("arg 1: path of file to encrypt or decrypt");
         System.out.println("arg 2: (e)encrypt or (d)decrypt");
+        System.out.println("optional arg 3: pass in -q if you don't want to view file contents after encryption");
         System.out.println("usage: \n$ java Jaes input.txt e");
         System.exit(0);
     }
@@ -72,7 +81,7 @@ public class Jaes {
 
     private static void cryptFile(String secretKey, String fileInputPath, String fileOutPath, boolean isEncryption)
     throws NoSuchAlgorithmException, NoSuchPaddingException, InvalidKeyException, IOException,
-    IllegalBlockSizeException, BadPaddingException {
+           IllegalBlockSizeException, BadPaddingException {
 
         String successAppend = "";
         var key = new SecretKeySpec(secretKey.getBytes(), "AES");
@@ -99,7 +108,24 @@ public class Jaes {
         inputStream.close();
         outputStream.close();
 
-        System.out.println("File successfully " + successAppend);
-        System.out.println("New File: " + fileOutPath);
+        handlePostCryption(fileOutPath, successAppend);
+    }
+
+    private static void handlePostCryption(String fileOutPath, String successAppend) throws IOException {
+        if (!quietMode) {
+            System.out.println("File successfully " + successAppend);
+            System.out.println("New File: " + fileOutPath);
+
+            InputStream input = new BufferedInputStream(new FileInputStream(fileOutPath));
+            byte[] buffer = new byte[8192];
+
+            try {
+                for (int length = 0; (length = input.read(buffer)) != -1;) {
+                    System.out.write(buffer, 0, length);
+                }
+            } finally {
+                input.close();
+            }
+        }
     }
 }
