@@ -40,7 +40,8 @@ public class Jaes {
         } else {
             quietMode = false;
         }
-        String secret = handleSecretKey();
+        boolean needConfirm = (encryptOrDe.equals("e")) ? true : false;
+        String secret = handleSecretKey(needConfirm);
 
         if (input.isDirectory()) {
             System.out.println("Input file is a directory. Only files are supported");
@@ -60,7 +61,7 @@ public class Jaes {
         System.exit(0);
     }
 
-    private static String handleSecretKey() throws NoSuchAlgorithmException {
+    private static String handleSecretKey(boolean confirm) throws NoSuchAlgorithmException {
         Console console = System.console();
 
         if (console == null) {
@@ -69,6 +70,14 @@ public class Jaes {
         } else {
             System.out.println("Enter key for encryption or decryption: ");
             keyFromConsole = console.readPassword();
+            if (confirm) {
+                System.out.println("Confirm key for encryption: ");
+                char[] confirmKey = console.readPassword();
+                if (!String.valueOf(confirmKey).equals(String.valueOf(keyFromConsole))) {
+                    System.out.println("Confirmation key does not match original. Exiting...");
+                    System.exit(0);
+                }
+            }
         }
         String convertedKey = String.valueOf(keyFromConsole);
 
